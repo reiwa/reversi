@@ -3,6 +3,7 @@ import produce from "immer"
 import type { NextPage } from "next"
 import { useState } from "react"
 import { ButtonCell } from "../app/components/ButtonCell"
+import { Cell } from "../app/types/cell"
 import { Turn } from "../app/types/turn"
 import { createCells } from "../app/utils/createCells"
 import { createNextCellAddresses } from "../app/utils/createNextCellAddresses"
@@ -37,6 +38,23 @@ const PageHome: NextPage = () => {
     setCells(nextState)
     if (0 < nextCellAddresses.length) {
       setTurn(toggleTurn(turn))
+      onNext(nextState)
+    }
+  }
+
+  const onNext = (cells: Cell[]) => {
+    const cpu = toggleTurn(turn)
+    const addresses = createNextCellAddresses(cells, cpu)
+    const nextIndexes = addresses.map(toIndexFromAddress)
+    const length = nextIndexes.length
+    const nextIndex = nextIndexes[Math.floor(Math.random() * length)]
+    const nextState = produce(cells, (draftState) => {
+      draftState[nextIndex] = cpu
+    })
+    const nextCellAddresses = createNextCellAddresses(nextState, turn)
+    setCells(nextState)
+    if (0 < nextCellAddresses.length) {
+      setTurn(turn)
     }
   }
 

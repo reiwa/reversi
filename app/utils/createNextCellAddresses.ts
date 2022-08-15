@@ -1,4 +1,5 @@
 import { Cell } from "../types/cell"
+import { CellAddress } from "../types/cellAddress"
 import { Turn } from "../types/turn"
 import { createAddresses } from "./createAddresses"
 import { createDirections } from "./createDirections"
@@ -13,7 +14,7 @@ export const createNextCellAddresses = (cells: Cell[], turn: Turn) => {
     return cells[index] === turn
   })
 
-  return nextCoordinates.flatMap((address) => {
+  const items = nextCoordinates.flatMap((address) => {
     const results = createDirections().map((direction) => {
       const [x, y] = direction
       const searchAddresses = toLineAddresses([address], x, y)
@@ -27,5 +28,11 @@ export const createNextCellAddresses = (cells: Cell[], turn: Turn) => {
     return results.filter((f): f is NonNullable<typeof f> => {
       return f !== null
     })
+  })
+
+  const ts = items.map((address) => address.join("-"))
+
+  return Array.from(new Set(ts)).map((item) => {
+    return item.split("-").map((text) => parseInt(text)) as CellAddress
   })
 }
