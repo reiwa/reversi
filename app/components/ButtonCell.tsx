@@ -7,6 +7,7 @@ type Props = {
   color: 0 | 1 | null
   turn: 0 | 1
   isActive: boolean
+  isDisabled: boolean
   onClick(): void
 }
 
@@ -28,7 +29,8 @@ export const ButtonCell: FC<Props> = (props) => {
     return props.turn === 0 ? "red.400" : "blue.400"
   }
 
-  const isDisabled = props.color === null && !props.isActive
+  const isDisabled =
+    props.isDisabled || (props.color === null && !props.isActive)
 
   const text = toAddressTextFromIndex(props.index)
 

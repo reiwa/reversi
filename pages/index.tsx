@@ -5,14 +5,20 @@ import { useState } from "react"
 import { ButtonCell } from "../app/components/ButtonCell"
 import { Cell } from "../app/types/cell"
 import { Turn } from "../app/types/turn"
+import { calcCpuCells } from "../app/utils/calcCpuCells"
 import { createCells } from "../app/utils/createCells"
 import { createNextCellAddresses } from "../app/utils/createNextCellAddresses"
-import { toFlipIndexGroup } from "../app/utils/toFlipIndexGroup"
+import { toFlipCellIndexes } from "../app/utils/toFlipCellIndexes"
 import { toIndexFromAddress } from "../app/utils/toIndexFromAddress"
-import { toggleTurn } from "../app/utils/toggleTurn"
 
 const PageHome: NextPage = () => {
+  const [isResult, setResult] = useState(false)
+
+  const [cpuTurn, setCpuTurn] = useState<Turn>(1)
+
   const [turn, setTurn] = useState<Turn>(0)
+
+  const isTurnCpu = turn === cpuTurn
 
   const [cells, setCells] = useState(() => {
     return createCells()
@@ -22,40 +28,50 @@ const PageHome: NextPage = () => {
 
   const nextIndexes = nextCellAddresses.map(toIndexFromAddress)
 
-  const onClick = (index: number) => {
-    const flipIndexGroups = toFlipIndexGroup(cells, turn, index)
-    const nextState = produce(cells, (draftState) => {
-      for (const indexes of flipIndexGroups) {
-        for (const index of indexes) {
-          draftState[index] = turn
-        }
-      }
-    })
-    const nextCellAddresses = createNextCellAddresses(
-      nextState,
-      toggleTurn(turn),
-    )
-    setCells(nextState)
-    if (0 < nextCellAddresses.length) {
-      setTurn(toggleTurn(turn))
-      onNext(nextState)
+  const onCheck = async (cells: Cell[], turn: Turn, cpuTurn: Turn) => {
+    const nextTurn = turn === 0 ? 1 : 0
+    const addresses = createNextCellAddresses(cells, turn)
+    const nextAddresses = createNextCellAddresses(cells, nextTurn)
+    if (addresses.length === 0 && nextAddresses.length === 0) {
+      setResult(true)
+      return
+    }
+    const isTurnCpu = turn === cpuTurn
+    const isTurnPlayer = turn !== cpuTurn
+    if (isTurnPlayer && nextAddresses.length === 0) {
+      return
+    }
+    if (isTurnPlayer && nextAddresses.length !== 0) {
+      setTurn((state) => (state === 0 ? 1 : 0))
+      const nextCells = await calcCpuCells(cells, cpuTurn)
+      setCells(nextCells)
+      setTurn((state) => (state === 0 ? 1 : 0))
+      onCheck(nextCells, nextTurn, cpuTurn)
+      return
+    }
+    if (isTurnCpu && nextAddresses.length === 0) {
+      setTurn((state) => (state === 0 ? 1 : 0))
+      const nextCells = await calcCpuCells(cells, cpuTurn)
+      setCells(nextCells)
+      setTurn((state) => (state === 0 ? 1 : 0))
+      onCheck(nextCells, nextTurn, cpuTurn)
+      return
+    }
+    if (isTurnCpu && nextAddresses.length !== 0) {
+      setTurn(nextTurn)
+      return
     }
   }
 
-  const onNext = (cells: Cell[]) => {
-    const cpu = toggleTurn(turn)
-    const addresses = createNextCellAddresses(cells, cpu)
-    const nextIndexes = addresses.map(toIndexFromAddress)
-    const length = nextIndexes.length
-    const nextIndex = nextIndexes[Math.floor(Math.random() * length)]
-    const nextState = produce(cells, (draftState) => {
-      draftState[nextIndex] = cpu
+  const onClick = (index: number) => {
+    const flipIndexes = toFlipCellIndexes(cells, turn, index)
+    const nextCells = produce(cells, (state) => {
+      for (const index of flipIndexes) {
+        state[index] = turn
+      }
     })
-    const nextCellAddresses = createNextCellAddresses(nextState, turn)
-    setCells(nextState)
-    if (0 < nextCellAddresses.length) {
-      setTurn(turn)
-    }
+    setCells(nextCells)
+    onCheck(nextCells, turn, cpuTurn)
   }
 
   return (
@@ -77,6 +93,7 @@ const PageHome: NextPage = () => {
                 index={index}
                 color={cell}
                 turn={turn}
+                isDisabled={isTurnCpu}
                 isActive={nextIndexes.includes(index)}
                 onClick={() => {
                   onClick(index)

@@ -7,7 +7,7 @@ import { toCellsFromAddresses } from "./toCellsFromAddresses"
 import { toIndexFromAddress } from "./toIndexFromAddress"
 import { toLineAddresses } from "./toLineAddresses"
 
-export const toFlipIndexGroup = (cells: Cell[], turn: Turn, index: number) => {
+export const toFlipCellIndexes = (cells: Cell[], turn: Turn, index: number) => {
   const address = toAddressFromIndex(index)
 
   const addressGroups = createDirections().map((direction) => {
@@ -21,13 +21,9 @@ export const toFlipIndexGroup = (cells: Cell[], turn: Turn, index: number) => {
     return []
   })
 
-  const flipIndexGroups = addressGroups.map((addresses) => {
+  return addressGroups.flatMap((addresses) => {
     return addresses.map((address) => {
       return toIndexFromAddress(address)
     })
-  })
-
-  return flipIndexGroups.filter((group) => {
-    return 0 < group.length
   })
 }
